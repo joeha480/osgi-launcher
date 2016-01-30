@@ -1,0 +1,121 @@
+apply plugin: 'java'
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+compileJava.options.encoding = 'UTF-8'
+compileTestJava.options.encoding = 'UTF-8'
+javadoc.options.encoding = 'UTF-8'
+sourceCompatibility = '1.7'
+targetCompatibility = '1.7'
+
+group = "org.daisy.dotify"
+
+sourceSets {
+	main {
+		java {
+			srcDir 'src'
+		}
+		resources {
+			srcDir 'src'
+		}
+	}
+	test {
+		java {
+			srcDir 'test'
+		}
+		resources {
+			srcDir 'test'
+		}
+	}
+}
+
+jar {
+	doFirst {
+		manifest {
+	    	attributes (
+	    		'Main-Class':'org.daisy.dotify.devtools.osgi.OSGiLauncher',
+	    		'Built-By': System.getProperty("user.name"),
+    			'Built-On': new Date().format('yyyy-MM-dd')
+			)
+		}
+	}
+	from sourceSets.main.allJava
+}
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+}
+
+dependencies {
+	compile("org.osgi:org.osgi.core:5.0.0")
+}
+
+buildscript {
+    repositories {
+    	mavenCentral()
+    	mavenLocal()
+    }
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+artifacts {
+    archives javadocJar, sourcesJar
+}
+
+ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+signing {
+    required { isReleaseVersion && gradle.taskGraph.hasTask("uploadArchives") }
+    sign configurations.archives
+}
+
+uploadArchives {
+	//Only upload if a git hash is supplied. On Travis only upload snapshots.
+	enabled = repositoryRevision.size()==40 && (System.getenv("TRAVIS_BUILD_ID")==null || version.endsWith("SNAPSHOT"))
+    repositories {
+        mavenDeployer {
+            if (isReleaseVersion) {
+                beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+            }
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: sonatypeUsername, password: sonatypePassword)
+            }
+            pom.project {
+                name 'osgi-launcher'
+                packaging 'jar'
+                description 'OSGi Launcher'
+                url 'https://github.com/joeha480/osg-launcher/'
+                scm {
+                    connection 'scm:git:https://github.com/joeha480/osgi-launcher.git'
+                    developerConnection 'scm:git:https://github.com/joeha480/osgi-launcher.git'
+                    url "$repositoryURL"
+                }
+                licenses {
+                    license {
+                        name 'LGPL'
+                        url 'http://www.gnu.org/licenses/lgpl.html'
+                    }
+                }
+                developers {
+                    developer {
+                        id 'joel'
+                        name 'Joel Håkansson'
+                    }
+                }
+            }
+        }
+    }
+}
