@@ -8,6 +8,14 @@ javadoc.options.encoding = 'UTF-8'
 sourceCompatibility = '1.7'
 targetCompatibility = '1.7'
 
+/*
+The following environment variables needed for artifact publishing:
+
+	TRAVIS_BUILD_ID
+	SONATYPE_PASSWORD
+	SONATYPE_USER
+*/
+
 group = "org.daisy.dotify"
 
 sourceSets {
@@ -88,10 +96,10 @@ uploadArchives {
                 beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
             }
             repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
+                authentication(userName: System.getenv("SONATYPE_USER"), password: System.getenv("SONATYPE_PASSWORD"))
             }
             snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: sonatypeUsername, password: sonatypePassword)
+                authentication(userName: System.getenv("SONATYPE_USER"), password: System.getenv("SONATYPE_PASSWORD"))
             }
             pom.project {
                 name 'osgi-launcher'
@@ -118,4 +126,8 @@ uploadArchives {
             }
         }
     }
+}
+
+task wrapper(type: Wrapper) {
+	gradleVersion = '2.8'
 }
