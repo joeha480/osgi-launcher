@@ -1,4 +1,4 @@
 language: java
-jdk: oraclejdk7
+jdk: oraclejdk8
 after_success:
   - ./upload.sh
